@@ -8,8 +8,7 @@ interface WelcomePageProps {
 function WelcomePage({ onStart }: WelcomePageProps) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-custom">
-            <div className="max-w-4xl w-full bg-white/90 rounded-xl shadow-2xl overflow-hidden">
-                <div className="aspect-video w-full">
+            <div className="max-w-4xl w-full bg-white/80 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">                <div className="aspect-video w-full">
                     <iframe
                         className="w-full h-full"
                         src="https://www.youtube.com/embed/ZMqWZKCjSCc?autoplay=1"
