@@ -1,14 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 .bg-custom {
     background-image: linear-gradient(
             rgba(0, 0, 0, 0.3),
             rgba(0, 0, 0, 0.3)
     ), url('/assets/media/background.jpg');
-    background-size: cover;
+    background-size: 80% auto; /* Reduz para 80% da largura, altura automática */
     background-position: center;
     background-repeat: no-repeat;
-    image-rendering: -webkit-optimize-contrast; /* Melhora a nitidez */
-    filter: brightness(1.1) contrast(1.1); /* Ajusta o brilho e contraste */
+    image-rendering: -webkit-optimize-contrast;
+    filter: brightness(1.1) contrast(1.1);
+    background-attachment: fixed; /* Mantém a imagem fixa */
+    background-color: #f0f0f0; /* Cor de fundo para áreas não cobertas pela imagem */
 }
