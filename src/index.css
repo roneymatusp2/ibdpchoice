@@ -7,11 +7,36 @@
             rgba(0, 0, 0, 0.3),
             rgba(0, 0, 0, 0.3)
     ), url('/assets/media/background.jpg');
-    background-size: 90% auto; /* Reduz para 80% da largura, altura automática */
+    background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     image-rendering: -webkit-optimize-contrast;
     filter: brightness(1.1) contrast(1.1);
-    background-attachment: fixed; /* Mantém a imagem fixa */
-    background-color: #f0f0f0; /* Cor de fundo para áreas não cobertas pela imagem */
+}
+
+.question-bg {
+    background: linear-gradient(135deg, rgba(59, 73, 227, 0.1) 0%, rgba(202, 44, 93, 0.1) 100%);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    min-height: 100vh;
+    position: relative;
+}
+
+.question-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+            radial-gradient(circle at 15% 50%, rgba(59, 73, 227, 0.1) 0%, transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(202, 44, 93, 0.1) 0%, transparent 25%);
+    pointer-events: none;
+}
+
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
