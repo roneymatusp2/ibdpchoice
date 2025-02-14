@@ -2,10 +2,6 @@
 
 /**
  * This interface represents the final result of the questionnaire scoring.
- *  - course: which math course is recommended ("AA" or "AI")
- *  - level: recommended level ("HL" or "SL")
- *  - confidence: integer from 0 to 100
- *  - details: extra text about focus, style, and final advice
  */
 export interface Results {
   course: 'AA' | 'AI';
@@ -18,28 +14,16 @@ export interface Results {
   };
 }
 
-/**
- * This function takes the user's answers and returns a recommended course,
- * recommended level, an overall confidence score, and descriptive text.
- *
- * answers: a record of question IDs ("Q1","Q2",...) mapped to answers ("A","B","C","D", etc.)
- */
 export function calculateResults(answers: Record<string, string>): Results {
   let aaScore = 0; // Analysis & Approaches
   let aiScore = 0; // Applications & Interpretation
   let hlScore = 0; // Higher Level
   let slScore = 0; // Standard Level
 
-  // 1) Score the 30 career-focused questions (Q1..Q30):
-  //    Each question answer => A/B/C/D/E/F. We'll interpret:
-  //    A => +2 to AA, +2 to HL
-  //    B => +2 to AA, +2 to SL
-  //    C => +2 to AI, +2 to HL
-  //    D => +2 to AI, +2 to SL
-  //    E or F => skip => no effect
+  // 1) Score the 30 career questions (Q1..Q30):
   for (let q = 1; q <= 30; q++) {
     const questionId = `Q${q}`;
-    const answer = answers[questionId] || ''; // default to empty if not answered
+    const answer = answers[questionId] || '';
 
     switch (answer) {
       case 'A':
@@ -58,25 +42,19 @@ export function calculateResults(answers: Record<string, string>): Results {
         aiScore += 2;
         slScore += 2;
         break;
+        // E/F => skip
       default:
-        // E, F, or missing => no effect
         break;
     }
   }
 
-  // 2) Score the 4 sample IB Math problems (Q31..Q34).
-  //    If user picks the correct answer, we give a small +1 HL boost (no effect on AA vs AI).
-  //    Q31 correct => "A"  (82)
-  //    Q32 correct => "B"  (13)
-  //    Q33 correct => "B"  (20)
-  //    Q34 correct => "A"  ((x-1)(x^2 -5x +6))
+  // 2) Score sample IB math problems (Q31..Q34) => correct => +1 HL
   const sampleAnswersMap: Record<string, string> = {
-    Q31: 'A',
-    Q32: 'B',
-    Q33: 'B',
-    Q34: 'A',
+    Q31: 'A', // mean = 82
+    Q32: 'B', // f(5)=13
+    Q33: 'B', // max at n=20
+    Q34: 'A', // factor => (x-1)(x^2-5x+6)
   };
-
   for (let q = 31; q <= 34; q++) {
     const questionId = `Q${q}`;
     if (sampleAnswersMap[questionId] && answers[questionId] === sampleAnswersMap[questionId]) {
@@ -84,15 +62,12 @@ export function calculateResults(answers: Record<string, string>): Results {
     }
   }
 
-  // 3) Score the 2 basic math questions (Q35..Q36).
-  //    If correct => +1 HL as well.
-  //    Q35 correct => "B" (40 cm²)
-  //    Q36 correct => "B" (12.5%)
+  // 3) Score basic math questions (Q35..Q36) => correct => +1 HL
+  // Q35 => "B" (40 cm²), Q36 => "B" (12.5%)
   const basicMathMap: Record<string, string> = {
     Q35: 'B',
     Q36: 'B',
   };
-
   for (let q = 35; q <= 36; q++) {
     const questionId = `Q${q}`;
     if (basicMathMap[questionId] && answers[questionId] === basicMathMap[questionId]) {
@@ -100,14 +75,11 @@ export function calculateResults(answers: Record<string, string>): Results {
     }
   }
 
-  // 4) Determine final course (AA vs AI)
+  // 4) Determine final course & level
   const course = aaScore >= aiScore ? 'AA' : 'AI';
-
-  // 5) Determine final level (HL vs SL)
   const level = hlScore >= slScore ? 'HL' : 'SL';
 
-  // 6) Calculate confidence
-  //    We'll measure how strongly the user leans course & level by difference in scores.
+  // 5) Confidence: measure difference in dimension preference
   const totalCourseScore = aaScore + aiScore;
   const diffCourse = Math.abs(aaScore - aiScore);
   let courseConfidence = 50;
@@ -124,7 +96,7 @@ export function calculateResults(answers: Record<string, string>): Results {
 
   const confidence = Math.round((courseConfidence + levelConfidence) / 2);
 
-  // 7) Build the details object
+  // 6) Construct feedback
   const details = {
     focus: getFocusDescription(course, level),
     style: getLearningStyleDescription(course, level),
@@ -134,34 +106,34 @@ export function calculateResults(answers: Record<string, string>): Results {
   return { course, level, confidence, details };
 }
 
-//-------------------------- HELPER FUNCTIONS --------------------------------//
+//---------------- HELPER FUNCTIONS ----------------//
 
 function getFocusDescription(course: 'AA' | 'AI', level: 'HL' | 'SL'): string {
   if (course === 'AA') {
-    // Analysis & Approaches
     return level === 'HL'
-        ? "Strong emphasis on pure mathematics, proofs, and abstract thinking. Ideal for those pursuing engineering, physics, or mathematics who need a deep theoretical understanding."
-        : "Balances theoretical mathematics with moderate depth. Suitable for students who like conceptual understanding but want a more manageable workload than HL.";
+        ? "Strong emphasis on pure mathematics, proofs, and abstract thinking. Ideal for engineering, physics, or math-heavy fields needing deep theory."
+        : "A balanced theoretical approach at a moderate depth. Good for those who enjoy concepts without the intensity of HL.";
   } else {
-    // Applications & Interpretation
+    // AI
     return level === 'HL'
-        ? "Focuses on real-world modeling, data analysis, and technology use at a challenging level. Great for future economists, data analysts, or social scientists who need robust applied math."
-        : "Practical approach to math with a lighter load. Emphasizes modeling, statistics, and technology. Ideal for students who want math skills relevant to broader fields without intense abstraction.";
+        ? "Emphasizes real-world modeling, data analysis, and technology at a higher depth. Great for future economists, data scientists, or social scientists."
+        : "Practical math focusing on modeling and stats with a lighter load, suitable for broader fields that need math literacy without heavy abstraction.";
   }
 }
 
 function getLearningStyleDescription(course: 'AA' | 'AI', level: 'HL' | 'SL'): string {
   if (course === 'AA') {
     if (level === 'HL') {
-      return "Your answers suggest a preference for in-depth, abstract thinking and comfort with rigorous problem solving. You likely enjoy seeing the underlying structures and proofs in mathematics.";
+      return "Your responses suggest a preference for rigorous, theoretical challenges and enjoyment of underlying structures and proofs.";
     } else {
-      return "You show interest in conceptual mathematics but may prefer a balanced pace. AA SL provides foundational theory without overwhelming abstraction.";
+      return "You show interest in conceptual math but likely prefer a more balanced pace than HL demands. AA SL can offer solid theory without overload.";
     }
   } else {
+    // AI
     if (level === 'HL') {
-      return "You indicated a strong inclination for applied contexts, data analysis, and real-world models. AI HL lets you explore these practical applications at a deeper complexity.";
+      return "You indicated a strong inclination for applied math and real-world contexts, enjoying data-driven or tech-driven solutions at a deeper level.";
     } else {
-      return "You appreciate math when it’s concrete, relevant, and integrated with technology. AI SL is a practical choice to gain math literacy while keeping workload balanced.";
+      return "You appreciate math when it’s concrete and integrated with technology, but prefer a lighter workload. AI SL fits that practical, moderate approach.";
     }
   }
 }
@@ -176,20 +148,16 @@ function getAdvice(
   let advice = "";
 
   if (confidence >= 80) {
-    advice += `Your responses strongly indicate that ${course} ${level} is an excellent match (Confidence: ${confidence}%). `;
-    advice += "This suggests your interests align well with that track. Still, confirm with math educators or advisors if you have specific university goals.";
+    advice = `Your results strongly point to ${course} ${level} with a confidence of ${confidence}%. This indicates a strong match for your interests and aptitudes. Still, consult a teacher or counselor if you have specific university requirements.`;
   } else if (confidence >= 60) {
-    advice += `You appear to lean towards ${course} ${level}, with moderate confidence (~${confidence}%). `;
-    advice += "It's worth discussing with a teacher to ensure it fits your overall plan. ";
+    advice = `You lean toward ${course} ${level}, at a moderate confidence of ${confidence}%. Consider a discussion with educators to confirm this choice. `;
     if (courseConfidence > levelConfidence) {
-      advice += `You show a clearer preference for ${course} dimension than ${level} dimension. Double-check if HL or SL best fits your schedule and comfort.`;
+      advice += `You show a clearer preference for ${course} than for the chosen level (HL vs SL). Double-check if HL or SL is right for your schedule and ambition.`;
     } else {
-      advice += `You show a clearer preference for ${level} dimension than ${course} dimension. Verify whether AA or AI truly matches your career goals.`;
+      advice += `You show a clearer preference for ${level} level but the course dimension is less certain. Ensure AA vs AI truly aligns with your future goals.`;
     }
   } else {
-    advice += `Your profile suggests a less decisive preference (Confidence: ${confidence}%). `;
-    advice += "We recommend further reflection, possibly discussing with a counselor or teacher. Consider your comfort with abstract vs. applied math, your available study time, and any university requirements. ";
-    advice += "Try exploring sample materials for both AA and AI, at HL and SL, before finalizing your choice.";
+    advice = `Your preference isn't very strong (confidence ${confidence}%). We suggest further reflection or discussion with a counselor/teacher. Evaluate your comfort with abstract vs. applied math, your available study time, and any university prerequisites. Exploring both AA and AI (HL or SL) sample content might clarify your direction.`;
   }
 
   return advice;

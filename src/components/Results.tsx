@@ -1,15 +1,18 @@
 // src/components/Results.tsx
+
 import React from 'react';
-import { Results } from '../utils/scoring';
+import { Results as ScoringResults } from '../utils/scoring';
 
 interface ResultsProps {
   answers: Record<string, string>;
-  results: Results;
+  // "results" is the final object from the scoring function
+  results: ScoringResults;
   onReset: () => void;
 }
 
 function Results({ answers, results, onReset }: ResultsProps) {
   const { course, level, confidence, details } = results;
+  const { focus, style, advice } = details;
 
   return (
       <div className="max-w-4xl mx-auto mt-8 px-4">
@@ -18,11 +21,11 @@ function Results({ answers, results, onReset }: ResultsProps) {
             Your Recommended Course
           </h2>
           <p className="mb-6">
-            Based on your responses, we suggest you consider:
+            Based on your responses, we suggest:
           </p>
 
-          <div className="p-4 bg-gray-50 border-l-4 border-indigo-500 rounded-r-md mb-6">
-            <h3 className="text-xl font-semibold text-indigo-600 mb-2">
+          <div className="p-4 bg-gray-50 border-l-4 border-indigo-600 rounded-r-md mb-6">
+            <h3 className="text-xl font-semibold text-indigo-700 mb-2">
               {course === 'AA' ? 'Analysis & Approaches' : 'Applications & Interpretation'} ({level})
             </h3>
             <p className="text-sm text-indigo-800">
@@ -32,18 +35,22 @@ function Results({ answers, results, onReset }: ResultsProps) {
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Course Focus</h3>
-            <p className="text-gray-700">{details.focus}</p>
+            <p className="text-gray-700">
+              {focus}
+            </p>
           </div>
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Learning Style Match</h3>
-            <p className="text-gray-700">{details.style}</p>
+            <p className="text-gray-700">
+              {style}
+            </p>
           </div>
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Advice</h3>
             <p className="text-gray-700 whitespace-pre-line">
-              {details.advice}
+              {advice}
             </p>
           </div>
 
