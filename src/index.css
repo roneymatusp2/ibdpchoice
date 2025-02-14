@@ -7,7 +7,7 @@
             rgba(0, 0, 0, 0.3),
             rgba(0, 0, 0, 0.3)
     ), url('/assets/media/background.jpg');
-    background-size: 80% auto; /* Reduz para 80% da largura, altura automática */
+    background-size: 90% auto; /* Reduz para 80% da largura, altura automática */
     background-position: center;
     background-repeat: no-repeat;
     image-rendering: -webkit-optimize-contrast;
