@@ -1,164 +1,171 @@
 // src/utils/scoring.ts
 
-/**
- * This interface represents the final result of the questionnaire scoring.
- */
 export interface Results {
-  course: 'AA' | 'AI';
-  level: 'HL' | 'SL';
+  course: 'AA' | 'AI' | 'Uncertain';
+  level: 'HL' | 'SL' | 'Uncertain';
   confidence: number;
   details: {
-    focus: string;
+    focus: string;  // or an empty string if Uncertain
     style: string;
     advice: string;
   };
 }
 
 export function calculateResults(answers: Record<string, string>): Results {
-  let aaScore = 0; // Analysis & Approaches
-  let aiScore = 0; // Applications & Interpretation
-  let hlScore = 0; // Higher Level
-  let slScore = 0; // Standard Level
+  let aaScore = 0;
+  let aiScore = 0;
+  let hlScore = 0;
+  let slScore = 0;
 
-  // 1) Score the 30 career questions (Q1..Q30):
+  // (same scoring logic for Q1..Q30)
   for (let q = 1; q <= 30; q++) {
-    const questionId = `Q${q}`;
-    const answer = answers[questionId] || '';
-
-    switch (answer) {
+    const ans = answers[`Q${q}`] || '';
+    switch (ans) {
       case 'A':
-        aaScore += 2;
-        hlScore += 2;
-        break;
+        aaScore += 2; hlScore += 2; break;
       case 'B':
-        aaScore += 2;
-        slScore += 2;
-        break;
+        aaScore += 2; slScore += 2; break;
       case 'C':
-        aiScore += 2;
-        hlScore += 2;
-        break;
+        aiScore += 2; hlScore += 2; break;
       case 'D':
-        aiScore += 2;
-        slScore += 2;
-        break;
+        aiScore += 2; slScore += 2; break;
         // E/F => skip
-      default:
-        break;
+      default: break;
     }
   }
 
-  // 2) Score sample IB math problems (Q31..Q34) => correct => +1 HL
+  // (sample problems bonus => +1 HL if correct)
   const sampleAnswersMap: Record<string, string> = {
-    Q31: 'A', // mean = 82
-    Q32: 'B', // f(5)=13
-    Q33: 'B', // max at n=20
-    Q34: 'A', // factor => (x-1)(x^2-5x+6)
+    Q31: 'A', Q32: 'B', Q33: 'B', Q34: 'A'
   };
   for (let q = 31; q <= 34; q++) {
-    const questionId = `Q${q}`;
-    if (sampleAnswersMap[questionId] && answers[questionId] === sampleAnswersMap[questionId]) {
+    if (answers[`Q${q}`] === sampleAnswersMap[`Q${q}`]) {
       hlScore += 1;
     }
   }
 
-  // 3) Score basic math questions (Q35..Q36) => correct => +1 HL
-  // Q35 => "B" (40 cm²), Q36 => "B" (12.5%)
+  // (basic math bonus => +1 HL if correct)
   const basicMathMap: Record<string, string> = {
-    Q35: 'B',
-    Q36: 'B',
+    Q35: 'B', // area=40
+    Q36: 'B', // 12.5%
   };
   for (let q = 35; q <= 36; q++) {
-    const questionId = `Q${q}`;
-    if (basicMathMap[questionId] && answers[questionId] === basicMathMap[questionId]) {
+    if (answers[`Q${q}`] === basicMathMap[`Q${q}`]) {
       hlScore += 1;
     }
   }
 
-  // 4) Determine final course & level
-  const course = aaScore >= aiScore ? 'AA' : 'AI';
-  const level = hlScore >= slScore ? 'HL' : 'SL';
+  // Determine course
+  let finalCourse: 'AA' | 'AI' | 'Uncertain';
+  if (aaScore > aiScore) finalCourse = 'AA';
+  else if (aiScore > aaScore) finalCourse = 'AI';
+  else finalCourse = 'Uncertain'; // e.g. exact tie
 
-  // 5) Confidence: measure difference in dimension preference
-  const totalCourseScore = aaScore + aiScore;
+  // Determine level
+  let finalLevel: 'HL' | 'SL' | 'Uncertain';
+  if (hlScore > slScore) finalLevel = 'HL';
+  else if (slScore > hlScore) finalLevel = 'SL';
+  else finalLevel = 'Uncertain';
+
+  // Confidence by dimension difference
+  const totalCourse = aaScore + aiScore;
   const diffCourse = Math.abs(aaScore - aiScore);
   let courseConfidence = 50;
-  if (totalCourseScore > 0) {
-    courseConfidence = Math.round((diffCourse / totalCourseScore) * 100);
+  if (totalCourse > 0) {
+    courseConfidence = Math.round((diffCourse / totalCourse) * 100);
   }
 
-  const totalLevelScore = hlScore + slScore;
+  const totalLevel = hlScore + slScore;
   const diffLevel = Math.abs(hlScore - slScore);
   let levelConfidence = 50;
-  if (totalLevelScore > 0) {
-    levelConfidence = Math.round((diffLevel / totalLevelScore) * 100);
+  if (totalLevel > 0) {
+    levelConfidence = Math.round((diffLevel / totalLevel) * 100);
   }
 
-  const confidence = Math.round((courseConfidence + levelConfidence) / 2);
+  const finalConfidence = Math.round((courseConfidence + levelConfidence) / 2);
 
-  // 6) Construct feedback
-  const details = {
-    focus: getFocusDescription(course, level),
-    style: getLearningStyleDescription(course, level),
-    advice: getAdvice(confidence, course, level, courseConfidence, levelConfidence),
+  // If finalConfidence < 40 => no strong recommendation
+  if (finalConfidence < 40) {
+    return {
+      course: 'Uncertain',
+      level: 'Uncertain',
+      confidence: finalConfidence,
+      details: {
+        focus: '',
+        style: '',
+        advice: `Your preference isn't strong (confidence ${finalConfidence}%). We cannot give a definitive recommendation. We suggest deeper reflection or discussion with counselors/teachers. Try exploring both AA/AI at HL/SL to see which resonates with you.`
+      }
+    };
+  }
+
+  // Otherwise, we use the normal approach:
+  // (If finalCourse or finalLevel is 'Uncertain' from a tie, you can special-case that too.)
+  const c = finalCourse === 'Uncertain' ? (aaScore >= aiScore ? 'AA' : 'AI') : finalCourse;
+  const l = finalLevel === 'Uncertain' ? (hlScore >= slScore ? 'HL' : 'SL') : finalLevel;
+
+  const focus = getFocusDescription(c, l);
+  const style = getLearningStyleDescription(c, l);
+  const advice = getTieredAdvice(finalConfidence, c, l, courseConfidence, levelConfidence);
+
+  return {
+    course: c,
+    level: l,
+    confidence: finalConfidence,
+    details: { focus, style, advice }
   };
-
-  return { course, level, confidence, details };
 }
 
-//---------------- HELPER FUNCTIONS ----------------//
-
+//-- Additional helper fns, possibly the same but changed advice for tiers --//
 function getFocusDescription(course: 'AA' | 'AI', level: 'HL' | 'SL'): string {
   if (course === 'AA') {
     return level === 'HL'
-        ? "Strong emphasis on pure mathematics, proofs, and abstract thinking. Ideal for engineering, physics, or math-heavy fields needing deep theory."
-        : "A balanced theoretical approach at a moderate depth. Good for those who enjoy concepts without the intensity of HL.";
+        ? "Strong emphasis on pure math, proofs, abstract thinking. Ideal for engineering, physics, or math-heavy fields needing deep theory."
+        : "A balanced theoretical approach at moderate depth. Good for conceptual math lovers but not as rigorous as HL.";
   } else {
     // AI
     return level === 'HL'
-        ? "Emphasizes real-world modeling, data analysis, and technology at a higher depth. Great for future economists, data scientists, or social scientists."
-        : "Practical math focusing on modeling and stats with a lighter load, suitable for broader fields that need math literacy without heavy abstraction.";
+        ? "Focus on real-world modeling, data analysis, and technology, with higher rigor. Great for economists, data scientists, or social-science fields needing robust applied math."
+        : "Practical math with a lighter load, focusing on modeling/statistics. Perfect for broader fields that need math literacy without too much abstraction.";
   }
 }
 
 function getLearningStyleDescription(course: 'AA' | 'AI', level: 'HL' | 'SL'): string {
   if (course === 'AA') {
     if (level === 'HL') {
-      return "Your responses suggest a preference for rigorous, theoretical challenges and enjoyment of underlying structures and proofs.";
+      return "You seem to enjoy rigorous theoretical challenges, underlying structures, and proofs in mathematics.";
     } else {
-      return "You show interest in conceptual math but likely prefer a more balanced pace than HL demands. AA SL can offer solid theory without overload.";
+      return "You like conceptual math but prefer a more manageable pace than HL. AA SL can give you that theoretical foundation without overload.";
     }
   } else {
-    // AI
     if (level === 'HL') {
-      return "You indicated a strong inclination for applied math and real-world contexts, enjoying data-driven or tech-driven solutions at a deeper level.";
+      return "You indicated a strong inclination for applied math, real-world contexts, and data-driven or tech-driven solutions at a deeper level.";
     } else {
-      return "You appreciate math when it’s concrete and integrated with technology, but prefer a lighter workload. AI SL fits that practical, moderate approach.";
+      return "You appreciate math when it's concrete and integrated with technology, but prefer a moderate workload. AI SL fits that practical approach.";
     }
   }
 }
 
-function getAdvice(
-    confidence: number,
+function getTieredAdvice(
+    finalConfidence: number,
     course: 'AA' | 'AI',
     level: 'HL' | 'SL',
     courseConfidence: number,
     levelConfidence: number
 ): string {
-  let advice = "";
-
-  if (confidence >= 80) {
-    advice = `Your results strongly point to ${course} ${level} with a confidence of ${confidence}%. This indicates a strong match for your interests and aptitudes. Still, consult a teacher or counselor if you have specific university requirements.`;
-  } else if (confidence >= 60) {
-    advice = `You lean toward ${course} ${level}, at a moderate confidence of ${confidence}%. Consider a discussion with educators to confirm this choice. `;
+  if (finalConfidence >= 80) {
+    return `Very strong indication of ${course} ${level} (Confidence: ${finalConfidence}%). This suggests an excellent fit. Still, confirm with teachers if you have specific university requirements.`;
+  } else if (finalConfidence >= 60) {
+    let text = `You have a moderate preference for ${course} ${level} (~${finalConfidence}% confidence).`;
     if (courseConfidence > levelConfidence) {
-      advice += `You show a clearer preference for ${course} than for the chosen level (HL vs SL). Double-check if HL or SL is right for your schedule and ambition.`;
+      text += ` You favor the ${course} dimension more strongly than HL vs SL. Double-check if HL or SL truly suits your schedule and ambitions.`;
     } else {
-      advice += `You show a clearer preference for ${level} level but the course dimension is less certain. Ensure AA vs AI truly aligns with your future goals.`;
+      text += ` You favor the ${level} dimension more clearly than AA vs AI. Ensure that ${course} is the right path for your future goals.`;
     }
+    return text;
   } else {
-    advice = `Your preference isn't very strong (confidence ${confidence}%). We suggest further reflection or discussion with a counselor/teacher. Evaluate your comfort with abstract vs. applied math, your available study time, and any university prerequisites. Exploring both AA and AI (HL or SL) sample content might clarify your direction.`;
+    // covers 40-59
+    let text = `Your preference is relatively weak (~${finalConfidence}% confidence), so proceed with caution. `;
+    text += "We suggest talking with an advisor, checking sample materials, or exploring additional practice to be certain.";
+    return text;
   }
-
-  return advice;
 }

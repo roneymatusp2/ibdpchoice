@@ -1,19 +1,39 @@
 // src/components/Results.tsx
-
 import React from 'react';
 import { Results as ScoringResults } from '../utils/scoring';
 
 interface ResultsProps {
   answers: Record<string, string>;
-  // "results" is the final object from the scoring function
   results: ScoringResults;
   onReset: () => void;
 }
 
 function Results({ answers, results, onReset }: ResultsProps) {
   const { course, level, confidence, details } = results;
-  const { focus, style, advice } = details;
 
+  if (course === 'Uncertain' && level === 'Uncertain') {
+    // show a special "No strong recommendation" block
+    return (
+        <div className="max-w-2xl mx-auto mt-8 px-4">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Inconclusive
+            </h2>
+            <p className="mb-6 text-gray-700">
+              {details.advice}
+            </p>
+            <button
+                onClick={onReset}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              Start Over
+            </button>
+          </div>
+        </div>
+    );
+  }
+
+  // otherwise, same normal approach
   return (
       <div className="max-w-4xl mx-auto mt-8 px-4">
         <div className="bg-white shadow-lg rounded-lg p-8">
@@ -33,30 +53,29 @@ function Results({ answers, results, onReset }: ResultsProps) {
             </p>
           </div>
 
+          {/* Course Focus */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Course Focus</h3>
-            <p className="text-gray-700">
-              {focus}
-            </p>
+            <p className="text-gray-700">{details.focus}</p>
           </div>
 
+          {/* Learning Style */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Learning Style Match</h3>
-            <p className="text-gray-700">
-              {style}
-            </p>
+            <p className="text-gray-700">{details.style}</p>
           </div>
 
+          {/* Advice */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Advice</h3>
             <p className="text-gray-700 whitespace-pre-line">
-              {advice}
+              {details.advice}
             </p>
           </div>
 
           <button
               onClick={onReset}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
             Start Over
           </button>
