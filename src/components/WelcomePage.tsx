@@ -8,7 +8,8 @@ interface WelcomePageProps {
 function WelcomePage({ onStart }: WelcomePageProps) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-custom">
-            <div className="max-w-4xl w-full bg-white/80 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">                <div className="aspect-video w-full">
+            <div className="max-w-4xl w-full bg-white/80 backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden">
+                <div className="aspect-video w-full bg-black/90">
                     <iframe
                         className="w-full h-full"
                         src="https://www.youtube.com/embed/ZMqWZKCjSCc?autoplay=1"
@@ -18,16 +19,17 @@ function WelcomePage({ onStart }: WelcomePageProps) {
                     />
                 </div>
 
-                <div className="p-8 text-center">
+                <div className="p-8 text-center bg-white/60 backdrop-blur-sm">
                     <h1 className="text-3xl font-bold text-school-navy mb-4">
                         Welcome to IB Math Choice Guide
                     </h1>
-                    <p className="text-lg text-school-navy/70 mb-8">
+                    <p className="text-lg text-school-navy/90 mb-8">
                         Watch the introduction video above and when you're ready, click the button below to start the questionnaire.
                     </p>
                     <button
                         onClick={onStart}
-                        className="inline-flex items-center px-8 py-4 bg-school-red text-white font-semibold rounded-lg hover:bg-school-red/90 transition-colors"
+                        className="inline-flex items-center px-8 py-4 bg-school-red text-white font-semibold rounded-lg
+                     hover:bg-school-red/90 transition-colors transform hover:scale-105 duration-300"
                     >
                         Start Questionnaire
                         <ArrowRight className="ml-2 h-5 w-5" />
